@@ -16,19 +16,15 @@
         "tatter/patches": "^2.1"
     },
     "config": {
-    "optimize-autoloader": true,
-    "preferred-install": "dist",
-    "sort-packages": true,
     "allow-plugins": {
         "php-http/discovery": true
     },
     "platform": {
-        "php": "8.2.10"
+        "php": "8.2.0"
     },
-        "audit": {
-            "block-insecure": false,
-            "ignore": ["PKSA-y2cr-5h3j-g3ys"]
-        }
+    "audit": {
+        "ignore": ["PKSA-y2cr-5h3j-g3ys"]
+    }
 },
     "autoload": {
         "psr-4": {
