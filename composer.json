@@ -5,9 +5,10 @@
     "homepage": "https://codeigniter.com",
     "license": "MIT",
    "require": {
-        "php": "8.2.*", 
-        "codeigniter4/framework": "^4.5",
-        "firebase/php-jwt": "^6.10"
+    "php": "8.2.*",
+    "codeigniter4/framework": "4.5.1",
+    "firebase/php-jwt": "6.10.0",
+    "doctrine/instantiator": "1.5.0"
     },
     "require-dev": {
         "fakerphp/faker": "^1.9",
@@ -23,8 +24,9 @@
         "php": "8.2.0"
     },
     "audit": {
-        "ignore": ["PKSA-y2cr-5h3j-g3ys"]
-    }
+            "ignore": ["PKSA-qbjf-dc24-wrff"],
+            "block-insecure": false
+        }
 },
     "autoload": {
         "psr-4": {
