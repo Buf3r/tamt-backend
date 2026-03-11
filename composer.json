@@ -19,12 +19,10 @@
         "optimize-autoloader": true,
         "preferred-install": "dist",
         "sort-packages": true,
-        "allow-plugins": {
-            "php-http/discovery": true
-        },
-        "audit": {
-            "ignore": ["PKSA-y2cr-5h3j-g3ys"]
-        }
+        "platform": {
+            "php": "8.2.30",
+            "ext-intl": "1.0"
+    }
     },
     "autoload": {
         "psr-4": {
