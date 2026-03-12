@@ -1,12 +1,8 @@
-[variables]
-    PHP_VERSION = '8.2'
-    NIXPACKS_PHP_EXTENSIONS = 'intl, mbstring, curl, openssl'
-
 [phases.setup]
-nixPkgs = ["php82", "php82Extensions.intl", "php82Extensions.mbstring", "php82Extensions.mysqlnd", "php82Extensions.curl", "composer"]
+nixPkgs = ["php82", "php82Extensions.intl", "php82Extensions.mbstring", "php82Extensions.mysqlnd", "php82Extensions.curl", "php82Extensions.pdo", "composer"]
 
 [phases.install]
-cmds = ["composer install --no-dev --optimize-autoloader"]
+cmds = ["composer install --no-dev --optimize-autoloader --no-scripts --no-interaction --ignore-platform-req=ext-intl"]
 
 [start]
-    cmd = 'php spark serve --host 0.0.0.0 --port $PORT'
+cmd = "php -S 0.0.0.0:$PORT -t public"
