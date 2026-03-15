@@ -79,13 +79,14 @@ class User extends ResourceController
 
         $fileName = null;
 
-        if ($imagefile = $this->request->getFiles()) {
-            $img = $imagefile['profile_image'];
+            if ($imagefile = $this->request->getFiles()) {
+                $img = $imagefile['profile_image'] ?? null;
 
-            if ($img->isValid() && !$img->hasMoved()) {
-                $fileName = uploadToCloudinary($img->getTempName(), 'auction/users');
+                if ($img && $img->isValid() && !$img->hasMoved()) {
+                    $cloudinaryUrl = uploadToCloudinary($img->getTempName(), 'auction/users');
+                    $fileName = !empty($cloudinaryUrl) ? $cloudinaryUrl : null;
+                }
             }
-        }
 
         $insert = [
             'username'      => $this->request->getVar('username'),
