@@ -17,6 +17,7 @@ class Item extends BaseController
 
     public function __construct()
     {
+        helper('cloudinary');
         $session = \Config\Services::session();
         $this->userId = $session->getFlashdata('user_id');
     }
@@ -36,14 +37,7 @@ class Item extends BaseController
         foreach ($items as $key1 => $value1) {
             $imageArray = $imageDb->where(['item_id' => $value1['item_id']])->findAll();
 
-            if ($imageArray) {
-                foreach ($imageArray as $key2 => $value2) {
-                    $imageArray[$key2]['image'] = Services::fullImageURL($value2['image']);
-                }
-            }
-
             $items[$key1]['auctioned'] = !empty($auctionDb->where(['item_id' => $value1['item_id']])->findAll(limit: 1));
-
             $items[$key1]['images'] = $imageArray != null ? $imageArray : [];
         }
 
@@ -68,14 +62,7 @@ class Item extends BaseController
 
         $imageArray = $imageDb->where(['item_id' => $item['item_id']])->findAll();
 
-        if ($imageArray) {
-            foreach ($imageArray as $key => $value) {
-                $imageArray[$key]['image'] = Services::fullImageURL($value['image']);
-            }
-        }
-
         $item['auctioned'] = !empty($auctionDb->where(['item_id' => $item['item_id']])->findAll(limit: 1));
-
         $item['images'] = $imageArray != [] ? $imageArray : null;
 
         return $this->respond([
@@ -88,9 +75,7 @@ class Item extends BaseController
     public function create()
     {
         if (!$this->validate([
-            // 'user_id'       => 'required|numeric',
             'item_name'     => 'required',
-            // 'description'   => 'required',
             'initial_price' => 'required|numeric',
             'images'        => 'permit_empty|mime_in[images,image/png,image/jpeg]|is_image[images]|max_size[images,5120]',
         ])) {
@@ -98,7 +83,6 @@ class Item extends BaseController
         }
 
         $insert = [
-            // 'user_id'       => $this->request->getVar('user_id'),
             'user_id'       => $this->userId,
             'item_name'     => $this->request->getVar('item_name'),
             'description'   => $this->request->getVar('description'),
@@ -106,7 +90,7 @@ class Item extends BaseController
         ];
 
         $db = new ItemModel;
-        $save  = $db->insert($insert);
+        $save = $db->insert($insert);
 
         if (!$save) {
             return $this->failServerError(description: 'Failed to create item');
@@ -117,11 +101,9 @@ class Item extends BaseController
 
             foreach ($imagefile['images'] as $img) {
                 if ($img->isValid() && !$img->hasMoved()) {
-                    $fileName = date("dmy") . $img->getRandomName();
-
-                    $img->move(ROOTPATH . 'public/images/item', $fileName);
-
-                    $imageDb->save(['item_id' => $db->getInsertID(), 'image' => $fileName]);
+                    $tempPath = $img->getTempName();
+                    $cloudinaryUrl = uploadToCloudinary($tempPath, 'auction/items');
+                    $imageDb->save(['item_id' => $db->getInsertID(), 'image' => $cloudinaryUrl]);
                 }
             }
         }
@@ -151,14 +133,9 @@ class Item extends BaseController
         }
 
         $update = [
-            // 'user_id' => $this->request->getRawInputVar('user_id')
-            //     ?? $exist['userId'],
-            'item_name' => $this->request->getRawInputVar('item_name')
-                ?? $exist['item_name'],
-            'description' => $this->request->getRawInputVar('description')
-                ?? $exist['description'],
-            'initial_price' => $this->request->getRawInputVar('initial_price')
-                ?? $exist['initial_price']
+            'item_name'     => $this->request->getRawInputVar('item_name') ?? $exist['item_name'],
+            'description'   => $this->request->getRawInputVar('description') ?? $exist['description'],
+            'initial_price' => $this->request->getRawInputVar('initial_price') ?? $exist['initial_price'],
         ];
 
         $save = $db->update($id, $update);
@@ -169,9 +146,7 @@ class Item extends BaseController
 
         return $this->respondUpdated([
             'status' => 200,
-            'messages' => [
-                'success' => 'Item updated successfully'
-            ]
+            'messages' => ['success' => 'Item updated successfully']
         ]);
     }
 
@@ -194,7 +169,6 @@ class Item extends BaseController
         $removedCount = 0;
         $addedCount = 0;
 
-        // Remove former images
         if ($this->request->getVar('former_images_id')) {
             $formerImageIds = json_decode($this->request->getVar('former_images_id'));
             $imageDb = new ImageModel;
@@ -202,26 +176,21 @@ class Item extends BaseController
 
             foreach ($images as $image) {
                 if (!in_array($image['image_id'], $formerImageIds)) {
-                    $fileName = $imageDb->where('image_id', $image['image_id'])->first()['image'];
-
+                    deleteFromCloudinary($image['image']);
                     $imageDb->delete($image['image_id']);
-
-                    unlink(ROOTPATH . 'public/images/item/' . $fileName);
                     $removedCount++;
                 }
             }
         }
 
-        // Save new images
         if ($imagefile = $this->request->getFiles()) {
             $imageDb = new ImageModel;
 
             foreach ($imagefile['images'] as $img) {
                 if ($img->isValid() && !$img->hasMoved()) {
-                    $fileName = date("dmy") . $img->getRandomName();
-                    $img->move(ROOTPATH . 'public/images/item', $fileName);
-
-                    $imageDb->save(['item_id' => $id, 'image' => $fileName]);
+                    $tempPath = $img->getTempName();
+                    $cloudinaryUrl = uploadToCloudinary($tempPath, 'auction/items');
+                    $imageDb->save(['item_id' => $id, 'image' => $cloudinaryUrl]);
                     $addedCount++;
                 }
             }
@@ -229,9 +198,7 @@ class Item extends BaseController
 
         return $this->respondUpdated([
             'status' => 200,
-            'messages' => [
-                'success' => 'Item images updated successfully'
-            ],
+            'messages' => ['success' => 'Item images updated successfully'],
             'removed' => $removedCount,
             'added' => $addedCount
         ]);
@@ -244,20 +211,17 @@ class Item extends BaseController
 
         if (!$exist) return $this->failNotFound(description: 'Item not found');
 
-        $delete = $db->delete($id);
-
-        if (!$delete) return $this->failServerError(description: 'Failed to delete item');
-
         $imageDb = new ImageModel;
         $images = $imageDb->where(['item_id' => $id])->findAll();
 
         foreach ($images as $image) {
-            $fileName = $image['image'];
-
+            deleteFromCloudinary($image['image']);
             $imageDb->delete($image['image_id']);
-
-            unlink(ROOTPATH . 'public/images/item/' . $fileName);
         }
+
+        $delete = $db->delete($id);
+
+        if (!$delete) return $this->failServerError(description: 'Failed to delete item');
 
         return $this->respondDeleted([
             'status' => 200,

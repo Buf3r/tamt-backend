@@ -13,11 +13,13 @@ class User extends ResourceController
     use ResponseTrait;
 
     protected String|null $userId;
+    
 
     public function __construct()
     {
-        $session = \Config\Services::session();
-        $this->userId = $session->getFlashdata('user_id');
+    helper('cloudinary');
+    $session = \Config\Services::session();
+    $this->userId = $session->getFlashdata('user_id');
     }
 
     public function index()
@@ -81,9 +83,7 @@ class User extends ResourceController
             $img = $imagefile['profile_image'];
 
             if ($img->isValid() && !$img->hasMoved()) {
-                $fileName = $this->request->getVar('username') . '_' . date("dmy") . $img->getRandomName();
-
-                $img->move(ROOTPATH . 'public/images/user', $fileName);
+                $fileName = uploadToCloudinary($img->getTempName(), 'auction/users');
             }
         }
 
@@ -180,12 +180,9 @@ class User extends ResourceController
 
             if ($img->isValid() && !$img->hasMoved()) {
                 if ($exist['profile_image']) {
-                    unlink(ROOTPATH . 'public/images/user/' . $exist['profile_image']);
-                }
-
-                $fileName = $this->request->getVar('username') . '_' . date("dmy") . $img->getRandomName();
-
-                $img->move(ROOTPATH . 'public/images/user', $fileName);
+                        deleteFromCloudinary($exist['profile_image']);
+                    }
+                    $fileName = uploadToCloudinary($img->getTempName(), 'auction/users');
             }
         }
 
