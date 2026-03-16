@@ -4,22 +4,19 @@ namespace App\Controllers\Api;
 
 use CodeIgniter\API\ResponseTrait;
 use CodeIgniter\RESTful\ResourceController;
-
 use App\Models\UserModel;
-use Config\Services;
 
 class User extends ResourceController
 {
     use ResponseTrait;
 
     protected String|null $userId;
-    
 
     public function __construct()
     {
-    helper('cloudinary');
-    $session = \Config\Services::session();
-    $this->userId = $session->getFlashdata('user_id');
+        helper('cloudinary');
+        $session = \Config\Services::session();
+        $this->userId = $session->getFlashdata('user_id');
     }
 
     public function index()
@@ -29,12 +26,6 @@ class User extends ResourceController
 
         if (!$users) {
             return $this->failNotFound('Users not found');
-        }
-
-        foreach ($users as $key => $value) {
-            if ($value['profile_image']) {
-                $users[$key]['profile_image'] = Services::fullProfileImageURL($value['profile_image']);
-            }
         }
 
         return $this->respond([
@@ -53,10 +44,6 @@ class User extends ResourceController
             return $this->failNotFound('User not found');
         }
 
-        if ($user['profile_image']) {
-            $user['profile_image'] = Services::fullProfileImageURL($user['profile_image']);
-        }
-
         return $this->respond([
             'status' => 200,
             'messages' => ['success' => 'OK'],
@@ -67,11 +54,11 @@ class User extends ResourceController
     public function create()
     {
         if (!$this->validate([
-            'username'     => 'required|is_unique[users.username]|min_length[4]',
-            'password'     => 'required|min_length[6]',
-            'name'         => 'required',
-            'email'        => 'required|valid_email',
-            'phone'        => 'required',
+            'username'      => 'required|is_unique[users.username]|min_length[4]',
+            'password'      => 'required|min_length[6]',
+            'name'          => 'required',
+            'email'         => 'required|valid_email',
+            'phone'         => 'required',
             'profile_image' => 'permit_empty|mime_in[profile_image,image/png,image/jpeg]|is_image[profile_image]|max_size[profile_image,5120]',
         ])) {
             return $this->failValidationErrors(\Config\Services::validation()->getErrors());
@@ -79,14 +66,17 @@ class User extends ResourceController
 
         $fileName = null;
 
-            if ($imagefile = $this->request->getFiles()) {
-                $img = $imagefile['profile_image'] ?? null;
+        if ($imagefile = $this->request->getFiles()) {
+            $img = $imagefile['profile_image'] ?? null;
 
-                if ($img && $img->isValid() && !$img->hasMoved()) {
-                    $cloudinaryUrl = uploadToCloudinary($img->getTempName(), 'auction/users');
-                    $fileName = !empty($cloudinaryUrl) ? $cloudinaryUrl : null;
+            if ($img && $img->isValid() && !$img->hasMoved()) {
+                try {
+                    $fileName = uploadToCloudinary($img->getTempName(), 'auction/users');
+                } catch (\Exception $e) {
+                    return $this->failServerError($e->getMessage());
                 }
             }
+        }
 
         $insert = [
             'username'      => $this->request->getVar('username'),
@@ -98,7 +88,7 @@ class User extends ResourceController
         ];
 
         $db = new UserModel;
-        $save  = $db->insert($insert);
+        $save = $db->insert($insert);
 
         if (!$save) {
             return $this->failServerError(description: 'Failed to create user');
@@ -107,19 +97,16 @@ class User extends ResourceController
         return $this->respondCreated([
             'status' => 201,
             'messages' => ['success' => 'OK'],
-            'data' => [
-                'user_id' => $db->getInsertID(),
-            ]
+            'data' => ['user_id' => $db->getInsertID()],
         ]);
     }
 
     public function update($id = null)
     {
         if (!$this->validate([
-            // 'username' => 'permit_empty|is_unique[users.username]',
-            'name'     => 'permit_empty',
-            'email'    => 'permit_empty|valid_email',
-            'phone'    => 'permit_empty',
+            'name'  => 'permit_empty',
+            'email' => 'permit_empty|valid_email',
+            'phone' => 'permit_empty',
         ])) {
             return $this->failValidationErrors(\Config\Services::validation()->getErrors());
         }
@@ -132,16 +119,9 @@ class User extends ResourceController
         }
 
         $update = [
-            // 'username' => $this->request->getRawInputVar('username')
-            //     ? $this->request->getRawInputVar('username')
-            //     : $exist['username'],
-
-            'name' => $this->request->getRawInputVar('name')
-                ?? $exist['name'],
-            'email' => $this->request->getRawInputVar('email')
-                ?? $exist['email'],
-            'phone' => $this->request->getRawInputVar('phone')
-                ?? $exist['phone'],
+            'name'  => $this->request->getRawInputVar('name') ?? $exist['name'],
+            'email' => $this->request->getRawInputVar('email') ?? $exist['email'],
+            'phone' => $this->request->getRawInputVar('phone') ?? $exist['phone'],
         ];
 
         $save = $db->update($this->userId, $update);
@@ -152,16 +132,13 @@ class User extends ResourceController
 
         return $this->respondUpdated([
             'status' => 200,
-            'messages' => [
-                'success' => 'User updated successfully'
-            ]
+            'messages' => ['success' => 'User updated successfully'],
         ]);
     }
 
     public function changeProfileImage()
     {
         if (!$this->validate([
-            'username' => 'permit_empty',
             'profile_image' => 'permit_empty|mime_in[profile_image,image/png,image/jpeg]|is_image[profile_image]|max_size[profile_image,5120]',
         ])) {
             return $this->failValidationErrors(\Config\Services::validation()->getErrors());
@@ -177,21 +154,21 @@ class User extends ResourceController
         $fileName = null;
 
         if ($imagefile = $this->request->getFiles()) {
-            $img = $imagefile['profile_image'];
+            $img = $imagefile['profile_image'] ?? null;
 
-            if ($img->isValid() && !$img->hasMoved()) {
+            if ($img && $img->isValid() && !$img->hasMoved()) {
                 if ($exist['profile_image']) {
-                        deleteFromCloudinary($exist['profile_image']);
-                    }
+                    deleteFromCloudinary($exist['profile_image']);
+                }
+                try {
                     $fileName = uploadToCloudinary($img->getTempName(), 'auction/users');
+                } catch (\Exception $e) {
+                    return $this->failServerError($e->getMessage());
+                }
             }
         }
 
-        $update = [
-            'profile_image' => $fileName,
-        ];
-
-        $save = $db->update($this->userId, $update);
+        $save = $db->update($this->userId, ['profile_image' => $fileName]);
 
         if (!$save) {
             return $this->failServerError(description: 'Failed to update profile image');
@@ -199,9 +176,7 @@ class User extends ResourceController
 
         return $this->respondUpdated([
             'status' => 200,
-            'messages' => [
-                'success' => 'Profile image updated successfully'
-            ]
+            'messages' => ['success' => 'Profile image updated successfully'],
         ]);
     }
 
@@ -226,9 +201,7 @@ class User extends ResourceController
         }
 
         $update = [
-            'password_hash' => $this->request->getVar('password')
-                ? password_hash($this->request->getVar('password'), PASSWORD_DEFAULT)
-                : $exist['password_hash'],
+            'password_hash' => password_hash($this->request->getVar('new_password'), PASSWORD_DEFAULT),
         ];
 
         $save = $db->update($this->userId, $update);
@@ -239,9 +212,7 @@ class User extends ResourceController
 
         return $this->respondUpdated([
             'status' => 200,
-            'messages' => [
-                'success' => 'Password updated successfully'
-            ]
+            'messages' => ['success' => 'Password updated successfully'],
         ]);
     }
 
@@ -252,15 +223,17 @@ class User extends ResourceController
 
         if (!$exist) return $this->failNotFound(description: 'User not found');
 
+        if ($exist['profile_image']) {
+            deleteFromCloudinary($exist['profile_image']);
+        }
+
         $delete = $db->delete($this->userId);
 
         if (!$delete) return $this->failServerError(description: 'Failed to delete user');
 
-        unlink(ROOTPATH . 'public/images/user/' . $exist['profile_image']);
-
         return $this->respond([
             'status' => 200,
-            'messages' => ['success' => 'User successfully deleted']
+            'messages' => ['success' => 'User successfully deleted'],
         ]);
     }
 }
