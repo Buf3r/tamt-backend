@@ -5,6 +5,7 @@ use Cloudinary\Configuration\Configuration;
 
 function uploadToCloudinary(string $filePath, string $folder = 'auction'): string
 {
+    log_message('debug', 'Cloudinary config: ' . getenv('CLOUDINARY_CLOUD_NAME') . ' key: ' . getenv('CLOUDINARY_API_KEY'));
     try {
         Configuration::instance([
             'cloud' => [
@@ -48,6 +49,7 @@ function deleteFromCloudinary(string $imageUrl): void
 
         $cloudinary->uploadApi()->destroy($publicId);
     } catch (\Exception $e) {
-        log_message('error', 'Cloudinary delete error: ' . $e->getMessage());
+    log_message('error', 'Cloudinary error: ' . $e->getMessage());
+    throw new \Exception('Cloudinary error: ' . $e->getMessage());
     }
 }
