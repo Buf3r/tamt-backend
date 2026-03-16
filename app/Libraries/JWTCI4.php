@@ -28,14 +28,14 @@ class JWTCI4
    }
 
    protected function setConfig()
-   {
-      $this->key = getenv("jwt.secretkey");
-      $this->ttl = getenv("jwt.ttl") ? getenv("jwt.ttl") : 60;
-      $this->iss = $this->getCurrentURL();
-      $this->jti = $this->setTime(date("Y-m-d H:i:s"));
+{
+    $this->key = env("jwt.secretkey");
+    $this->ttl = env("jwt.ttl") ? env("jwt.ttl") : 60;
+    $this->iss = $this->getCurrentURL();
+    $this->jti = $this->setTime(date("Y-m-d H:i:s"));
 
-      return $this;
-   }
+    return $this;
+}
 
    protected function setExpiredDate()
    {
