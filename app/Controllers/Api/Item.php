@@ -97,13 +97,20 @@ class Item extends BaseController
         }
 
         if ($imagefile = $this->request->getFiles()) {
-            $imageDb = new ImageModel;
+        $imageDb = new ImageModel;
 
-            foreach ($imagefile['images'] as $img) {
+        foreach ($imagefile['images'] as $img) {
                 if ($img->isValid() && !$img->hasMoved()) {
                     $tempPath = $img->getTempName();
-                    $cloudinaryUrl = uploadToCloudinary($tempPath, 'auction/items');
-                    $imageDb->save(['item_id' => $db->getInsertID(), 'image' => $cloudinaryUrl]);
+                    try {
+                        $cloudinaryUrl = uploadToCloudinary($tempPath, 'auction/items');
+                        if (empty($cloudinaryUrl)) {
+                            return $this->failServerError('Cloudinary returned empty URL for item image');
+                        }
+                        $imageDb->save(['item_id' => $db->getInsertID(), 'image' => $cloudinaryUrl]);
+                    } catch (\Exception $e) {
+                        return $this->failServerError('Cloudinary error: ' . $e->getMessage());
+                    }
                 }
             }
         }
