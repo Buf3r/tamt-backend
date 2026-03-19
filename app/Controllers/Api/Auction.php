@@ -39,17 +39,16 @@ class Auction extends ResourceController
             foreach ($auctions as $key1 => $value1) {
                 $imageArray = $imageDb->where(['item_id' => $value1['item_id']])->findAll();
 
-                // Obtener la oferta más alta
-                $highestBid = $bidDb->select('MAX(bid_price) as highest_bid')
-                    ->where('auction_id', $value1['auction_id'])
-                    ->first();
-                $auctions[$key1]['highest_bid'] = $highestBid['highest_bid'] ?? $value1['initial_price'];
-
                 if ($imageArray) {
                     foreach ($imageArray as $key2 => $value2) {
                         $auctions[$key1]['images'][$key2]['image'] = $value2['image'];
                     }
                 }
+
+                $highestBid = $bidDb->select('MAX(bid_price) as highest_bid')
+                    ->where('auction_id', $value1['auction_id'])
+                    ->first();
+                $auctions[$key1]['highest_bid'] = $highestBid['highest_bid'] ?? $value1['initial_price'];
 
                 $auctions[$key1]['bid_count'] = count($bidDb->getBid(where: ['auction_id' => $auctions[$key1]['auction_id']]));
                 $auctions[$key1]['author'] = $value1['user_id'] ? $userDb->getUser($value1['user_id']) : null;
@@ -67,40 +66,39 @@ class Auction extends ResourceController
     }
 
     public function show($id = null)
-{
-    $db = new AuctionModel;
-    $auction = $db->getAuction($id, allStatus: true);
+    {
+        $db = new AuctionModel;
+        $auction = $db->getAuction($id, allStatus: true);
 
-    if (!$auction) {
-        return $this->failNotFound('Auction not found');
-    }
-
-    $userDb = new UserModel;
-    $auction['author'] = $auction['user_id'] ? $userDb->getUser($auction['user_id']) : null;
-    $auction['winner'] = $auction['winner_user_id'] ? $userDb->getUser($auction['winner_user_id']) : null;
-
-    $imageDb = new ImageModel;
-    $imageArray = $imageDb->where(['item_id' => $auction['item_id']])->findAll();
-
-    if ($imageArray) {
-        foreach ($imageArray as $key2 => $value2) {
-            $auction['images'][$key2]['image'] = $value2['image'];
+        if (!$auction) {
+            return $this->failNotFound('Auction not found');
         }
+
+        $userDb = new UserModel;
+        $auction['author'] = $auction['user_id'] ? $userDb->getUser($auction['user_id']) : null;
+        $auction['winner'] = $auction['winner_user_id'] ? $userDb->getUser($auction['winner_user_id']) : null;
+
+        $imageDb = new ImageModel;
+        $imageArray = $imageDb->where(['item_id' => $auction['item_id']])->findAll();
+
+        if ($imageArray) {
+            foreach ($imageArray as $key2 => $value2) {
+                $auction['images'][$key2]['image'] = $value2['image'];
+            }
+        }
+
+        $bidDb = new BidModel;
+        $highestBid = $bidDb->select('MAX(bid_price) as highest_bid')
+            ->where('auction_id', $auction['auction_id'])
+            ->first();
+        $auction['highest_bid'] = $highestBid['highest_bid'] ?? $auction['initial_price'];
+
+        return $this->respond([
+            'status' => 200,
+            'messages' => ['success' => 'OK'],
+            'data' => $auction,
+        ]);
     }
-
-    // Obtener la oferta más alta
-    $bidDb = new BidModel;
-    $highestBid = $bidDb->select('MAX(bid_price) as highest_bid')
-        ->where('auction_id', $auction['auction_id'])
-        ->first();
-    $auction['highest_bid'] = $highestBid['highest_bid'] ?? $auction['initial_price'];
-
-    return $this->respond([
-        'status' => 200,
-        'messages' => ['success' => 'OK'],
-        'data' => $auction,
-    ]);
-}
 
     public function create()
     {
@@ -217,6 +215,11 @@ class Auction extends ResourceController
                 }
             }
 
+            $highestBid = $bidDb->select('MAX(bid_price) as highest_bid')
+                ->where('auction_id', $value1['auction_id'])
+                ->first();
+            $auctions[$key1]['highest_bid'] = $highestBid['highest_bid'] ?? $value1['initial_price'];
+
             $auctions[$key1]['bid_count'] = count($bidDb->getBid(where: ['auction_id' => $auctions[$key1]['auction_id']]));
             $auctions[$key1]['author'] = $value1['user_id'] ? $userDb->getUser($value1['user_id']) : null;
             $auctions[$key1]['winner'] = $value1['winner_user_id'] ? $userDb->getUser($value1['winner_user_id']) : null;
@@ -234,8 +237,8 @@ class Auction extends ResourceController
         $db = new AuctionModel;
         $auctions = $db->getBidAuctions($this->userId);
 
-        $db = new BidModel;
-        $bids = $db->getBid(where: ['user_id' => $this->userId]);
+        $bidDb = new BidModel;
+        $bids = $bidDb->getBid(where: ['user_id' => $this->userId]);
 
         $imageDb = new ImageModel;
         $userDb = new UserModel;
@@ -245,13 +248,10 @@ class Auction extends ResourceController
         foreach ($auctions as $key1 => $value1) {
             $_bids = [];
 
-            foreach ($bids as $key2 => $value2) {
-                if ($value2['auction_id'] == $value1['auction_id']) array_push($_bids, $value2);
-                // Obtener la oferta más alta
-                $highestBid = $bidDb->select('MAX(bid_price) as highest_bid')
-                    ->where('auction_id', $value1['auction_id'])
-                    ->first();
-                $auctions[$key1]['highest_bid'] = $highestBid['highest_bid'] ?? $value1['initial_price'];
+            foreach ($bids as $value2) {
+                if ($value2['auction_id'] == $value1['auction_id']) {
+                    array_push($_bids, $value2);
+                }
             }
 
             $newData[$key1]['auction'] = $value1;
@@ -264,8 +264,13 @@ class Auction extends ResourceController
                 }
             }
 
-            $auctions[$key1]['author'] = $value1['user_id'] ? $userDb->getUser($value1['user_id']) : null;
-            $auctions[$key1]['winner'] = $value1['winner_user_id'] ? $userDb->getUser($value1['winner_user_id']) : null;
+            $highestBid = $bidDb->select('MAX(bid_price) as highest_bid')
+                ->where('auction_id', $value1['auction_id'])
+                ->first();
+            $newData[$key1]['auction']['highest_bid'] = $highestBid['highest_bid'] ?? $value1['initial_price'];
+
+            $newData[$key1]['auction']['author'] = $value1['user_id'] ? $userDb->getUser($value1['user_id']) : null;
+            $newData[$key1]['auction']['winner'] = $value1['winner_user_id'] ? $userDb->getUser($value1['winner_user_id']) : null;
             $newData[$key1]['bids'] = $_bids;
         }
 
@@ -295,13 +300,14 @@ class Auction extends ResourceController
         if ($imageArray) {
             foreach ($imageArray as $key2 => $value2) {
                 $auction['images'][$key2]['image'] = $value2['image'];
-                // Obtener la oferta más alta
-                $highestBid = $bidDb->select('MAX(bid_price) as highest_bid')
-                    ->where('auction_id', $value1['auction_id'])
-                    ->first();
-                $auctions[$key1]['highest_bid'] = $highestBid['highest_bid'] ?? $value1['initial_price'];
             }
         }
+
+        $bidDb = new BidModel;
+        $highestBid = $bidDb->select('MAX(bid_price) as highest_bid')
+            ->where('auction_id', $auction['auction_id'])
+            ->first();
+        $auction['highest_bid'] = $highestBid['highest_bid'] ?? $auction['initial_price'];
 
         return $this->respond([
             'status' => 200,
