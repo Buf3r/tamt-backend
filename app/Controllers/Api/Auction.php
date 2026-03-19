@@ -26,7 +26,7 @@ class Auction extends ResourceController
     {
         try {
             $db = new AuctionModel;
-            $auctions = $db->getAuction(page: intval($this->request->getGet('page')));
+            $auctions = $db->getAuction(page: max(1, intval($this->request->getGet('page'))));
 
             if (!$auctions) {
                 return $this->failNotFound('Auctions not found');

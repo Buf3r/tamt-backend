@@ -82,7 +82,7 @@ class AuctionModel extends Model
             ->join('auctions', 'auctions.item_id = items.item_id', 'inner')
             ->where($whereArray)
             ->orderBy('auctions.created_at', 'desc')
-            ->findAll(limit: 20, offset: ($page - 1) * 20);
+            ->findAll(limit: 20, offset: (max(1, $page) - 1) * 20);
     }
 
     public function getBidAuctions($userId)
