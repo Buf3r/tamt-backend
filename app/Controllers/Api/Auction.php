@@ -39,6 +39,12 @@ class Auction extends ResourceController
             foreach ($auctions as $key1 => $value1) {
                 $imageArray = $imageDb->where(['item_id' => $value1['item_id']])->findAll();
 
+                // Obtener la oferta más alta
+                $highestBid = $bidDb->select('MAX(bid_price) as highest_bid')
+                    ->where('auction_id', $value1['auction_id'])
+                    ->first();
+                $auctions[$key1]['highest_bid'] = $highestBid['highest_bid'] ?? $value1['initial_price'];
+
                 if ($imageArray) {
                     foreach ($imageArray as $key2 => $value2) {
                         $auctions[$key1]['images'][$key2]['image'] = $value2['image'];
@@ -79,6 +85,11 @@ class Auction extends ResourceController
         if ($imageArray) {
             foreach ($imageArray as $key2 => $value2) {
                 $auction['images'][$key2]['image'] = $value2['image'];
+                // Obtener la oferta más alta
+                $highestBid = $bidDb->select('MAX(bid_price) as highest_bid')
+                    ->where('auction_id', $value1['auction_id'])
+                    ->first();
+                $auctions[$key1]['highest_bid'] = $highestBid['highest_bid'] ?? $value1['initial_price'];
             }
         }
 
@@ -234,6 +245,11 @@ class Auction extends ResourceController
 
             foreach ($bids as $key2 => $value2) {
                 if ($value2['auction_id'] == $value1['auction_id']) array_push($_bids, $value2);
+                // Obtener la oferta más alta
+                $highestBid = $bidDb->select('MAX(bid_price) as highest_bid')
+                    ->where('auction_id', $value1['auction_id'])
+                    ->first();
+                $auctions[$key1]['highest_bid'] = $highestBid['highest_bid'] ?? $value1['initial_price'];
             }
 
             $newData[$key1]['auction'] = $value1;
@@ -277,6 +293,11 @@ class Auction extends ResourceController
         if ($imageArray) {
             foreach ($imageArray as $key2 => $value2) {
                 $auction['images'][$key2]['image'] = $value2['image'];
+                // Obtener la oferta más alta
+                $highestBid = $bidDb->select('MAX(bid_price) as highest_bid')
+                    ->where('auction_id', $value1['auction_id'])
+                    ->first();
+                $auctions[$key1]['highest_bid'] = $highestBid['highest_bid'] ?? $value1['initial_price'];
             }
         }
 
