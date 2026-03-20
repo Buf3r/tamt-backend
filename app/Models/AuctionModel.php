@@ -47,43 +47,49 @@ class AuctionModel extends Model
     protected $beforeDelete   = [];
     protected $afterDelete    = [];
 
-    public function getAuction($id = NULL, $status = 'open', $where = NULL, $allStatus = false, $page = 1)
-    {
-        $select = 'auctions.auction_id, items.item_id, items.user_id, item_name, description, items.initial_price, auctions.final_price, auctions.winner_user_id, auctions.status, auctions.date_completed, auctions.created_at';
+   public function getAuction($id = NULL, $status = 'open', $where = NULL, $allStatus = false, $page = 1, $city = NULL)
+{
+    $select = 'auctions.auction_id, items.item_id, items.user_id, item_name, description, items.initial_price, items.location, items.condition, auctions.final_price, auctions.winner_user_id, auctions.status, auctions.date_completed, auctions.created_at';
 
-        if ($allStatus) {
-            $whereArray = [
-                'items.deleted_at' => NULL,
-                'auctions.deleted_at' => NULL,
-            ];
-        } else {
-            $whereArray = [
-                'status' => $status,
-                'items.deleted_at' => NULL,
-                'auctions.deleted_at' => NULL,
-            ];
-        }
+    if ($allStatus) {
+        $whereArray = [
+            'items.deleted_at'    => NULL,
+            'auctions.deleted_at' => NULL,
+        ];
+    } else {
+        $whereArray = [
+            'status'              => $status,
+            'items.deleted_at'    => NULL,
+            'auctions.deleted_at' => NULL,
+        ];
+    }
 
-        if ($where) {
-            foreach ($where as $key => $value) {
-                $whereArray[$key] = $value;
-            }
-        }
+    // Filtro por ciudad
+    if ($city) {
+        $whereArray['items.location'] = $city;
+    }
 
-        if ($id) {
-            $whereArray[$this->primaryKey] = $id;
-            return $this->setTable('items')
-                ->select($select)
-                ->join('auctions', 'auctions.item_id = items.item_id', 'inner')
-                ->where($whereArray)->first();
+    if ($where) {
+        foreach ($where as $key => $value) {
+            $whereArray[$key] = $value;
         }
+    }
+
+    if ($id) {
+        $whereArray[$this->primaryKey] = $id;
         return $this->setTable('items')
             ->select($select)
             ->join('auctions', 'auctions.item_id = items.item_id', 'inner')
-            ->where($whereArray)
-            ->orderBy('auctions.created_at', 'desc')
-            ->findAll(limit: 20, offset: (max(1, $page) - 1) * 20);
+            ->where($whereArray)->first();
     }
+
+    return $this->setTable('items')
+        ->select($select)
+        ->join('auctions', 'auctions.item_id = items.item_id', 'inner')
+        ->where($whereArray)
+        ->orderBy('auctions.created_at', 'desc')
+        ->findAll(limit: 20, offset: (max(1, $page) - 1) * 20);
+}
 
     public function getBidAuctions($userId)
     {
