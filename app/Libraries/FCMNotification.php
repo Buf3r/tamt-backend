@@ -5,29 +5,27 @@ namespace App\Libraries;
 class FCMNotification
 {
     private string $projectId = 'subastalo-9bcbf';
-    private string $credentialsPath;
+    private array $credentials;
 
     public function __construct()
     {
-        $credentials = getenv('FCM_CREDENTIALS');
-        $this->credentialsData = json_decode($credentials, true);
+        $credentialsJson = getenv('FCM_CREDENTIALS');
+        $this->credentials = json_decode($credentialsJson, true);
     }
 
     private function getAccessToken(): string
     {
-        $credentials = json_decode(json_encode($this->credentialsData), true);
-
         $now = time();
         $payload = [
-            'iss' => $credentials['client_email'],
-            'sub' => $credentials['client_email'],
-            'aud' => 'https://oauth2.googleapis.com/token',
-            'iat' => $now,
-            'exp' => $now + 3600,
+            'iss'   => $this->credentials['client_email'],
+            'sub'   => $this->credentials['client_email'],
+            'aud'   => 'https://oauth2.googleapis.com/token',
+            'iat'   => $now,
+            'exp'   => $now + 3600,
             'scope' => 'https://www.googleapis.com/auth/firebase.messaging',
         ];
 
-        $jwt = $this->createJWT($payload, $credentials['private_key']);
+        $jwt = $this->createJWT($payload, $this->credentials['private_key']);
 
         $ch = curl_init('https://oauth2.googleapis.com/token');
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
@@ -66,7 +64,7 @@ class FCMNotification
                         'title' => $title,
                         'body'  => $body,
                     ],
-                    'data' => array_map('strval', $data),
+                    'data'    => array_map('strval', $data),
                     'android' => [
                         'notification' => [
                             'channel_id' => 'subastalo_channel',
