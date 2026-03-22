@@ -182,6 +182,29 @@ class User extends ResourceController
         ]);
     }
 
+    public function updateFcmToken()
+    {
+        $db = new UserModel;
+        $exist = $db->where(['user_id' => $this->userId])->first();
+
+        if (!$exist) {
+            return $this->failNotFound(description: 'User not found');
+        }
+
+        $fcmToken = $this->request->getVar('fcm_token');
+
+        if (!$fcmToken) {
+            return $this->failValidationErrors(['fcm_token' => 'fcm_token is required']);
+        }
+
+        $db->update($this->userId, ['fcm_token' => $fcmToken]);
+
+        return $this->respondUpdated([
+            'status' => 200,
+            'messages' => ['success' => 'FCM token updated'],
+        ]);
+    }
+
     public function changePassword()
     {
         if (!$this->validate([
