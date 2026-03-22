@@ -98,4 +98,33 @@ class FCMNotification
             return false;
         }
     }
+
+    public function sendNotificationDebug(string $fcmToken, string $title, string $body): array
+    {
+        $accessToken = $this->getAccessToken();
+
+        $message = [
+            'message' => [
+                'token'        => $fcmToken,
+                'notification' => [
+                    'title' => $title,
+                    'body'  => $body,
+                ],
+            ],
+        ];
+
+        $ch = curl_init("https://fcm.googleapis.com/v1/projects/{$this->projectId}/messages:send");
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_POST, true);
+        curl_setopt($ch, CURLOPT_HTTPHEADER, [
+            'Authorization: Bearer ' . $accessToken,
+            'Content-Type: application/json',
+        ]);
+        curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($message));
+
+        $response = curl_exec($ch);
+        curl_close($ch);
+
+        return json_decode($response, true) ?? ['raw' => $response];
+    }
 }
