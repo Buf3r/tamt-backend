@@ -29,6 +29,7 @@ class Auction extends ResourceController
             $city = $this->request->getGet('city');
             $auctions = $db->getAuction(
                 page: max(1, intval($this->request->getGet('page'))),
+                allStatus: true, // ← agrega esto
                 city: $city
             );
             if (!$auctions) {
