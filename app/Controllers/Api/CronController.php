@@ -17,9 +17,9 @@ class CronController extends ResourceController
         $now = date('Y-m-d H:i:s');
 
         $expired = $db->where('status', 'open')
-            ->where('date_completed <', $now)
-            ->whereNotNull('date_completed')
-            ->findAll();
+                ->where('date_completed <', $now)
+                ->where('date_completed IS NOT NULL', null, false)
+                ->findAll();
 
         if (empty($expired)) {
             return $this->respond([
