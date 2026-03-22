@@ -9,12 +9,13 @@ class FCMNotification
 
     public function __construct()
     {
-        $this->credentialsPath = ROOTPATH . 'fcm-credentials.json';
+        $credentials = getenv('FCM_CREDENTIALS');
+        $this->credentialsData = json_decode($credentials, true);
     }
 
     private function getAccessToken(): string
     {
-        $credentials = json_decode(file_get_contents($this->credentialsPath), true);
+        $credentials = json_decode(json_encode($this->credentialsData), true);
 
         $now = time();
         $payload = [
