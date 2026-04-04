@@ -109,6 +109,22 @@ class Auction extends ResourceController
 
     public function create()
     {
+         if (!$this->validate([
+        'item_id'        => 'required|numeric',
+        'date_completed' => 'permit_empty|valid_date',
+        ])) {
+            return $this->failValidationErrors(\Config\Services::validation()->getErrors());
+        }
+
+        $itemDb = new ItemModel;
+        $itemExist = $itemDb->where([
+            'item_id' => $this->request->getVar('item_id'),
+            'user_id' => $this->userId
+        ])->first();
+
+        if (!$itemExist) {
+            return $this->failNotFound(description: 'Item not found');
+        }
         // 1. Verificar permisos (Sin actualizar la DB todavía)
         $userDb = new UserModel;
         $user = $userDb->find($this->userId);
@@ -116,11 +132,11 @@ class Auction extends ResourceController
         $useFree = false;
         $useCredit = false;
 
-        if ($user['vip'] == 1) {
+        if (($user['vip'] ?? 0) == 1) {
             // Es VIP: No hacemos nada, permitimos el flujo
-        } elseif ($user['free_auctions_used'] < 2) {
+        } elseif (($user['free_auctions_used'] ?? 0) < 2) {
             $useFree = true;
-        } elseif ($user['credits'] > 0) {
+        } elseif (($user['credits'] ?? 0) > 0) {
             $useCredit = true;
         } else {
             return $this->fail('No tienes créditos ni subastas gratis disponibles.', 403);
