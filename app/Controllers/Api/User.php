@@ -78,6 +78,18 @@ class User extends ResourceController
             }
         }
 
+        // Verificar email único
+        $existingUser = $db->where('email', $this->request->getVar('email'))->first();
+        if ($existingUser) {
+            return $this->fail('Este correo ya está registrado. Intenta con otro.', 409);
+        }
+
+        // Verificar username único  
+        $existingUsername = $db->where('username', $this->request->getVar('username'))->first();
+        if ($existingUsername) {
+            return $this->fail('Este nombre de usuario ya está en uso.', 409);
+        }
+
         $insert = [
             'username'      => $this->request->getVar('username'),
             'password_hash' => password_hash($this->request->getVar('password'), PASSWORD_DEFAULT),
