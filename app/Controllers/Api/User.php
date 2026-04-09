@@ -54,14 +54,28 @@ class User extends ResourceController
     public function create()
     {
         if (!$this->validate([
-            'username'      => 'required|is_unique[users.username]|min_length[4]',
+            'username'      => 'required|min_length[4]',
             'password'      => 'required|min_length[6]',
             'name'          => 'required',
             'email'         => 'required|valid_email',
             'phone'         => 'required',
-            'profile_image' => 'permit_empty|mime_in[profile_image,image/png,image/jpeg]|is_image[profile_image]|max_size[profile_image,5120]',
+            'profile_image' => 'permit_empty|max_size[profile_image,5120]',
         ])) {
             return $this->failValidationErrors(\Config\Services::validation()->getErrors());
+        }
+
+        $db = new UserModel;
+
+        // Verificar email único
+        $existingEmail = $db->where('email', $this->request->getVar('email'))->first();
+        if ($existingEmail) {
+            return $this->fail('Este correo ya está registrado. Intenta con otro.', 409);
+        }
+
+        // Verificar username único
+        $existingUsername = $db->where('username', $this->request->getVar('username'))->first();
+        if ($existingUsername) {
+            return $this->fail('Este nombre de usuario ya está en uso.', 409);
         }
 
         $fileName = null;
@@ -78,18 +92,6 @@ class User extends ResourceController
             }
         }
 
-        // Verificar email único
-        $existingUser = $db->where('email', $this->request->getVar('email'))->first();
-        if ($existingUser) {
-            return $this->fail('Este correo ya está registrado. Intenta con otro.', 409);
-        }
-
-        // Verificar username único  
-        $existingUsername = $db->where('username', $this->request->getVar('username'))->first();
-        if ($existingUsername) {
-            return $this->fail('Este nombre de usuario ya está en uso.', 409);
-        }
-
         $insert = [
             'username'      => $this->request->getVar('username'),
             'password_hash' => password_hash($this->request->getVar('password'), PASSWORD_DEFAULT),
@@ -100,7 +102,6 @@ class User extends ResourceController
             'profile_image' => $fileName,
         ];
 
-        $db = new UserModel;
         $save = $db->insert($insert);
 
         if (!$save) {
