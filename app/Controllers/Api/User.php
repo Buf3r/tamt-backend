@@ -105,7 +105,7 @@ class User extends ResourceController
         $save = $db->insert($insert);
 
         if (!$save) {
-            return $this->failServerError(description: 'Failed to create user');
+            return $this->failServerError(description: 'Porfavor, verifica los datos e intenta nuevamente');
         }
 
         return $this->respondCreated([
