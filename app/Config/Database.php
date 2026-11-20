@@ -80,5 +80,40 @@ class Database extends Config
         if (ENVIRONMENT === 'testing') {
             $this->defaultGroup = 'tests';
         }
+
+        // Sobrescribir datos de conexión desde variables de entorno si existen
+        $host = getenv('DB_HOST') ?: ($_ENV['DB_HOST'] ?? null);
+        $user = getenv('DB_USER') ?: ($_ENV['DB_USER'] ?? null);
+        $pass = getenv('DB_PASS') ?: ($_ENV['DB_PASS'] ?? null);
+        $name = getenv('DB_NAME') ?: ($_ENV['DB_NAME'] ?? null);
+        $port = getenv('DB_PORT') ?: ($_ENV['DB_PORT'] ?? null);
+        $ssl  = getenv('DB_SSL')  ?: ($_ENV['DB_SSL']  ?? null);
+
+        if ($host) {
+            $this->default['hostname'] = $host;
+        }
+        if ($user !== null && $user !== false) {
+            $this->default['username'] = $user;
+        }
+        if ($pass !== null && $pass !== false) {
+            $this->default['password'] = $pass;
+        }
+        if ($name) {
+            $this->default['database'] = $name;
+        }
+        if ($port) {
+            $this->default['port'] = (int) $port;
+        }
+
+        // Activar TLS/SSL en MySQLi cuando DB_SSL sea true/1/yes
+        $useSsl = filter_var($ssl, FILTER_VALIDATE_BOOLEAN);
+        if ($useSsl) {
+            $this->default['encrypt'] = [
+                'ssl' => [
+                    'verify_peer'       => true,
+                    'verify_peer_name'  => true,
+                ],
+            ];
+        }
     }
 }
