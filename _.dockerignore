@@ -1,0 +1,12 @@
+.git
+.github
+.env
+env
+fcm-credentials.json
+tests
+vendor
+writable/logs/*
+writable/cache/*
+writable/session/*
+writable/debugbar/*
+*.zip
