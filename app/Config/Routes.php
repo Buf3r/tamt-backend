@@ -37,6 +37,11 @@ $routes->post('api/login', 'Api\AuthController::login', ['filter' => 'cors']);
 
 $routes->post('api/users', 'Api\User::create', ['filter' => 'cors']);
 
+// Recuperación de contraseña por correo
+$routes->post('api/password/forgot', 'PasswordReset::forgot', ['filter' => 'cors']);
+$routes->get('password/reset/(:segment)', 'PasswordReset::form/$1');
+$routes->post('password/reset', 'PasswordReset::submit');
+
 $routes->get('api/cron/close-expired', 'Api\CronController::closeExpired');
 $routes->get('api/cron/test-notification', 'Api\CronController::testNotification');
 $routes->get('api/status', 'Api\StatusController::index');

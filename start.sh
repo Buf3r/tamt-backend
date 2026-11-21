@@ -5,7 +5,7 @@ PORT="${PORT:-10000}"
 
 # Escribir variables al .env de CI4
 cat > /var/www/html/.env <<ENVEOF
-CI_ENVIRONMENT = production
+CI_ENVIRONMENT = ${CI_ENVIRONMENT:-production}
 app.baseURL = ${APP_BASE_URL}
 database.default.hostname = ${DB_HOSTNAME}
 database.default.database = ${DB_DATABASE}
@@ -22,6 +22,9 @@ ADMIN_KEY = ${ADMIN_KEY}
 GOOGLE_CLIENT_ID = ${GOOGLE_CLIENT_ID}
 FACEBOOK_APP_ID = ${FACEBOOK_APP_ID}
 FACEBOOK_APP_SECRET = ${FACEBOOK_APP_SECRET}
+BREVO_API_KEY = ${BREVO_API_KEY}
+MAIL_FROM_EMAIL = ${MAIL_FROM_EMAIL}
+MAIL_FROM_NAME = ${MAIL_FROM_NAME:-Subastalo}
 ENVEOF
 
 # El JSON de FCM va aparte (contiene comillas)
