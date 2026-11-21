@@ -89,21 +89,44 @@ class AuctionModel extends Model
         ->findAll(limit: 20, offset: (max(1, $page) - 1) * 20);
 }
 
+
     public function getBidAuctions($userId)
     {
-        return $this->select()
-            ->join(
-                '(SELECT user_id bid_user_id, auction_id FROM bids) bids',
-                'auctions.auction_id = bids.auction_id',
-                'left'
-            )
-            ->join('(SELECT items.item_id, items.user_id, item_name, description, items.initial_price, items.deleted_at FROM items) items', 'items.item_id = auctions.item_id', 'right')
-            ->where([
-                'bids.bid_user_id' => $userId,
-                'auctions.deleted_at' => NULL,
-                'items.deleted_at' => NULL
+        return $this->db->table('auctions')
+            ->distinct()
+            ->select([
+                'auctions.auction_id',
+                'auctions.item_id',
+                'auctions.user_id',
+                'auctions.final_price',
+                'auctions.winner_user_id',
+                'auctions.status',
+                'auctions.date_completed',
+                'auctions.created_at',
+                'items.item_name',
+                'items.description',
+                'items.initial_price',
+                'items.location',
+                'items.condition',
+                'items.category',
+                'items.app_origin',
             ])
-            ->groupBy('auctions.auction_id')
-            ->findAll();
+            ->join(
+                'items',
+                'items.item_id = auctions.item_id',
+                'inner'
+            )
+            ->join(
+                'bids',
+                'bids.auction_id = auctions.auction_id',
+                'inner'
+            )
+            ->where('bids.user_id', $userId)
+            ->where('auctions.deleted_at', null)
+            ->where('items.deleted_at', null)
+            ->orderBy('auctions.created_at', 'DESC')
+            ->get()
+            ->getResultArray();
     }
+
 }
